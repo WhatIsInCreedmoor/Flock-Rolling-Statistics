@@ -66,11 +66,14 @@ function renderAll() {
 function formatStatWithDelta(value, prevValue) {
   const formattedVal = Number(value).toLocaleString();
   if (prevValue === undefined || prevValue === null) {
-    return formattedVal;
+    return `${formattedVal} <span class="stat-delta delta-zero">(0)</span>`;
   }
   const diff = value - prevValue;
-  const sign = diff > 0 ? `+${diff.toLocaleString()}` : (diff < 0 ? `${diff.toLocaleString()}` : '+0');
-  const cls = diff > 0 ? 'delta-pos' : (diff < 0 ? 'delta-neg' : 'delta-zero');
+  if (diff === 0) {
+    return `${formattedVal} <span class="stat-delta delta-zero">(0)</span>`;
+  }
+  const sign = diff > 0 ? `+${diff.toLocaleString()}` : `${diff.toLocaleString()}`;
+  const cls = diff > 0 ? 'delta-pos' : 'delta-neg';
   return `${formattedVal} <span class="stat-delta ${cls}">(${sign})</span>`;
 }
 
