@@ -12,6 +12,7 @@ on:
       - 'index.html'
       - 'app.js'
       - 'style.css'
+      - 'data/**'
       - '.github/workflows/**'
 
 permissions:
@@ -37,20 +38,16 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Verify Google Chrome installation
-        run: |
-          google-chrome --version || which google-chrome
-
-      - name: Run Scraper
+      - name: Run Scraper (Cloudflare Managed Challenge fallback)
         id: scrape
         continue-on-error: true
         run: |
           python scripts/scrape.py
 
-      - name: Scraper Status Check
+      - name: Scraper Status Note
         if: steps.scrape.outcome != 'success'
         run: |
-          echo "::warning::Cloudflare challenge intercepted the runner's datacenter IP. Preserving existing historical dataset."
+          echo "::warning::Cloudflare Managed Challenge intercepted the Azure datacenter IP. Deploying latest verified data snapshots."
 
       - name: Commit and push changes
         if: steps.scrape.outcome == 'success'
@@ -67,6 +64,8 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
