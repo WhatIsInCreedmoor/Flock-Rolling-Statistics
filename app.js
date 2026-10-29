@@ -19,9 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadData() {
   try {
+    const cacheBuster = `?t=${Date.now()}`;
     const [latestRes, historyRes] = await Promise.all([
-      fetch('data/latest.json').catch(() => null),
-      fetch('data/history.json').catch(() => null)
+      fetch(`data/latest.json${cacheBuster}`).catch(() => null),
+      fetch(`data/history.json${cacheBuster}`).catch(() => null)
     ]);
 
     if (latestRes && latestRes.ok) {
