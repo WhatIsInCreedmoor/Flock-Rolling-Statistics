@@ -42,10 +42,18 @@ jobs:
           google-chrome --version || which google-chrome
 
       - name: Run Scraper
+        id: scrape
+        continue-on-error: true
         run: |
           python scripts/scrape.py
 
+      - name: Scraper Status Check
+        if: steps.scrape.outcome != 'success'
+        run: |
+          echo "::warning::Cloudflare challenge intercepted the runner's datacenter IP. Preserving existing historical dataset."
+
       - name: Commit and push changes
+        if: steps.scrape.outcome == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Scraper for Flock Safety Transparency Portal.
-Uses headless Chrome to execute JavaScript, navigate past Cloudflare challenges,
+Uses Chrome with stealth flags to execute JavaScript, navigate past Cloudflare challenges,
 and extract 30-day rolling ALPR metrics.
 """
 
@@ -39,31 +39,27 @@ def find_chrome():
     return None
 
 
-def fetch_rendered_html(url, timeout=30):
+def fetch_rendered_html(url, timeout=40):
     chrome_bin = find_chrome()
     if not chrome_bin:
         raise RuntimeError(
             "Chrome/Chromium executable not found. Please install google-chrome or chromium."
         )
 
-    user_agent = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    )
-
+    # Use native browser flags without hardcoded user-agent mismatches to avoid triggering Cloudflare Turnstile
     cmd = [
         chrome_bin,
         "--headless=new",
         "--disable-gpu",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--virtual-time-budget=10000",
+        "--disable-blink-features=AutomationControlled",
+        "--window-size=1920,1080",
+        "--virtual-time-budget=15000",
         "--dump-dom",
-        f"--user-agent={user_agent}",
         url,
     ]
 
-    print(f"Executing: {' '.join(cmd[:4])} ... {url}")
+    # Try in standard sandbox first
+    print(f"Executing: {' '.join(cmd[:5])} ... {url}")
     result = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
@@ -72,8 +68,28 @@ def fetch_rendered_html(url, timeout=30):
         timeout=timeout,
     )
 
-    if result.returncode != 0:
-        print(f"Chrome warning/stderr:\n{result.stderr}", file=sys.stderr)
+    # If sandbox failed due to container restrictions, retry with --no-sandbox
+    if result.returncode != 0 and ("sandbox" in result.stderr.lower() or not result.stdout):
+        print("Retrying with --no-sandbox --disable-dev-shm-usage...")
+        cmd_fallback = [
+            chrome_bin,
+            "--headless=new",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-blink-features=AutomationControlled",
+            "--window-size=1920,1080",
+            "--virtual-time-budget=15000",
+            "--dump-dom",
+            url,
+        ]
+        result = subprocess.run(
+            cmd_fallback,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout,
+        )
 
     return result.stdout
 
@@ -87,7 +103,6 @@ def extract_metric(entry_type, html):
         <div style="...">94,218</div>
       </div>
     """
-    # Try exact data-tp-entry-type pattern
     pattern = (
         rf'data-tp-entry-type=[\"\x27]{entry_type}[\"\x27].*?'
         r'>([\d,]+)\s*</div>\s*</div>\s*</div>'
@@ -100,7 +115,6 @@ def extract_metric(entry_type, html):
         except ValueError:
             pass
 
-    # Broader fallback search within the entry type container
     broad_pattern = (
         rf'data-tp-entry-type=[\"\x27]{entry_type}[\"\x27][^>]*>(.*?)(?:<\/div>\s*){{3}}'
     )
@@ -116,21 +130,21 @@ def extract_metric(entry_type, html):
 
 
 def parse_flock_html(html):
-    if "data-tp-entry-type" not in html and "Just a moment..." in html:
-        raise ValueError("Cloudflare challenge page was returned instead of rendered portal.")
+    if "data-tp-entry-type" not in html:
+        if "Just a moment..." in html or "cf_chl" in html:
+            raise ValueError("Cloudflare challenge page was returned instead of rendered portal.")
+        raise ValueError("Target data attributes not found in page HTML.")
 
     plates = extract_metric("plateReadsInLast30Days", html)
     searches = extract_metric("searchesInLast30Days", html)
     hotlist_hits = extract_metric("plateHitsInLast30Days", html)
     cameras = extract_metric("numberOfOwnedCameras", html)
 
-    # Validate essential fields
     if plates is None or searches is None or hotlist_hits is None:
         raise ValueError(
             f"Failed to parse all metrics: plates={plates}, searches={searches}, hotlist_hits={hotlist_hits}"
         )
 
-    # Optional extraction of agency name
     agency_match = re.search(r"<title>Flock Safety - (.*?) Transparency Portal</title>", html, re.I)
     agency_name = agency_match.group(1).strip() if agency_match else "Creedmoor NC PD"
 
@@ -173,7 +187,6 @@ def update_data_files(metrics, now_utc=None):
             print(f"Warning reading history.json: {e}")
             history = []
 
-    # Check if entry for date already exists; update it or append
     existing_index = None
     for idx, item in enumerate(history):
         if item.get("date") == date_str:
@@ -196,7 +209,6 @@ def update_data_files(metrics, now_utc=None):
         history.append(entry)
         print(f"Appended new record for {date_str} to history.json")
 
-    # Keep sorted by date
     history.sort(key=lambda x: x.get("date", ""))
 
     with open(HISTORY_JSON, "w", encoding="utf-8") as f:
@@ -223,7 +235,6 @@ def main():
     print(f"[{datetime.datetime.now(datetime.timezone.utc).isoformat()}] Scraping {URL}")
 
     max_attempts = 3
-    html = ""
     for attempt in range(1, max_attempts + 1):
         try:
             print(f"Attempt {attempt}/{max_attempts}...")
