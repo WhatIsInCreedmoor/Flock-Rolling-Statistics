@@ -1,0 +1,70 @@
+name: Daily Flock Statistics Scraper & Deploy
+
+on:
+  schedule:
+    # Runs daily at 05:00 UTC (1:00 AM EDT / 12:00 AM EST)
+    - cron: '0 5 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'app.js'
+      - 'style.css'
+      - '.github/workflows/**'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  scrape-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify Google Chrome installation
+        run: |
+          google-chrome --version || which google-chrome
+
+      - name: Run Scraper
+        run: |
+          python scripts/scrape.py
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No changes in data to commit."
+          else
+            git commit -m "Update Flock rolling statistics [skip ci]: $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push origin main
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
