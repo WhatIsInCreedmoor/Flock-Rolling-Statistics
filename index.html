@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.3">
+  <link rel="stylesheet" href="style.css?v=1.4">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
@@ -164,15 +164,15 @@
             <thead>
               <tr>
                 <th>Snapshot Time (UTC)</th>
-                <th>Inferred Daily Vehicles (30d Avg)</th>
-                <th>Inferred Daily Searches (30d Avg)</th>
-                <th>Inferred Daily Hotlist Hits (30d Avg)</th>
-                <th>30-Day Window Shift</th>
+                <th>Net Vehicle Difference (Δ)</th>
+                <th>Net Search Difference (Δ)</th>
+                <th>Net Hotlist Hit Difference (Δ)</th>
+                <th>30-Day Lookback Difference</th>
               </tr>
             </thead>
             <tbody id="inferred-table-body">
               <tr>
-                <td colspan="5" class="text-center">Calculating inferred metrics...</td>
+                <td colspan="5" class="text-center">Calculating subtraction metrics...</td>
               </tr>
             </tbody>
           </table>
@@ -185,6 +185,6 @@
     </footer>
   </div>
 
-  <script src="app.js?v=1.3"></script>
+  <script src="app.js?v=1.4"></script>
 </body>
 </html>

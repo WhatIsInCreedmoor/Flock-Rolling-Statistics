@@ -165,10 +165,19 @@ function renderTable(history) {
   });
 }
 
+function formatDeltaVal(diff) {
+  if (diff === 0) {
+    return `<span class="stat-delta delta-zero">(0)</span>`;
+  }
+  const sign = diff > 0 ? `+${diff.toLocaleString()}` : `${diff.toLocaleString()}`;
+  const cls = diff > 0 ? 'delta-pos' : 'delta-neg';
+  return `<span class="stat-delta ${cls}">${sign}</span>`;
+}
+
 function renderInferredData(history) {
   if (!inferredTableBody) return;
 
-  // Calculate distinct dates recorded
+  // Calculate distinct calendar dates recorded
   const distinctDates = new Set(history.map(h => h.date)).size;
   const count = Math.max(1, distinctDates);
   const percent = Math.min(100, Math.round((count / 30) * 100));
@@ -181,9 +190,9 @@ function renderInferredData(history) {
   }
   if (inferredProgressText) {
     if (count < 30) {
-      inferredProgressText.textContent = `Collecting baseline rolling averages (${count}/30 days). Inferred 30-day historical lookback values unlock once 30 days of data are recorded. Inferred daily averages are calculated below:`;
+      inferredProgressText.textContent = `Tracking baseline rolling sums (${count}/30 days). Net shifts are calculated via direct subtraction: R(today) - R(previous) = Added Activity - Dropped 30-Day Activity. Once 30 days are recorded, 30-day lookback differences will calculate via subtraction.`;
     } else {
-      inferredProgressText.textContent = `Full 30-day baseline active. Reconstructing 30-day historical lookback activity and rolling daily rates below:`;
+      inferredProgressText.textContent = `Full 30-day baseline established. Reconstructing historical lookback activity and daily net shifts strictly via subtraction:`;
     }
   }
 
@@ -194,10 +203,10 @@ function renderInferredData(history) {
     const origIdx = history.length - 1 - revIdx;
     const priorRow = origIdx > 0 ? history[origIdx - 1] : null;
 
-    // Daily averages inferred from the 30-day rolling aggregate
-    const avgPlates = Math.round(row.plates_detected_30d / 30);
-    const avgSearches = (row.searches_30d / 30).toFixed(1);
-    const avgHits = (row.hotlist_hits_30d / 30).toFixed(1);
+    // Calculate daily net difference via subtraction
+    const pDiff = priorRow ? row.plates_detected_30d - priorRow.plates_detected_30d : 0;
+    const sDiff = priorRow ? row.searches_30d - priorRow.searches_30d : 0;
+    const hDiff = priorRow ? row.hotlist_hits_30d - priorRow.hotlist_hits_30d : 0;
 
     // Timestamp formatting
     let timeDisplay = row.date;
@@ -209,33 +218,29 @@ function renderInferredData(history) {
       `;
     }
 
-    // Window shift vs previous snapshot
-    let shiftDisplay = '<span class="stat-delta delta-zero">Baseline (0)</span>';
-    if (priorRow) {
-      const pDiff = row.plates_detected_30d - priorRow.plates_detected_30d;
-      const sDiff = row.searches_30d - priorRow.searches_30d;
-      const hDiff = row.hotlist_hits_30d - priorRow.hotlist_hits_30d;
+    // Lookback subtraction: find entry from ~30 days prior
+    let lookbackCell = `<span class="stat-delta delta-zero">Pending (Day ${count} of 30)</span>`;
+    const rowDate = new Date(row.date);
+    const thirtyDaysAgoRow = history.find(h => {
+      const hDate = new Date(h.date);
+      const diffDays = Math.round((rowDate - hDate) / (1000 * 60 * 60 * 24));
+      return diffDays >= 30;
+    });
 
-      const pSign = pDiff >= 0 ? `+${pDiff.toLocaleString()}` : `${pDiff.toLocaleString()}`;
-      const sSign = sDiff >= 0 ? `+${sDiff}` : `${sDiff}`;
-      const hSign = hDiff >= 0 ? `+${hDiff}` : `${hDiff}`;
-
-      shiftDisplay = `
-        <div style="font-size: 11px;">
-          <span class="${pDiff !== 0 ? (pDiff > 0 ? 'delta-pos' : 'delta-neg') : 'delta-zero'}">${pSign} plates</span> | 
-          <span class="${sDiff !== 0 ? (sDiff > 0 ? 'delta-pos' : 'delta-neg') : 'delta-zero'}">${sSign} searches</span> | 
-          <span class="${hDiff !== 0 ? (hDiff > 0 ? 'delta-pos' : 'delta-neg') : 'delta-zero'}">${hSign} hits</span>
-        </div>
-      `;
+    if (thirtyDaysAgoRow) {
+      const lookbackPlatesDiff = row.plates_detected_30d - thirtyDaysAgoRow.plates_detected_30d;
+      const lbSign = lookbackPlatesDiff >= 0 ? `+${lookbackPlatesDiff.toLocaleString()}` : `${lookbackPlatesDiff.toLocaleString()}`;
+      const lbCls = lookbackPlatesDiff > 0 ? 'delta-pos' : (lookbackPlatesDiff < 0 ? 'delta-neg' : 'delta-zero');
+      lookbackCell = `<span class="stat-delta ${lbCls}">${lbSign} plates (vs 30d ago)</span>`;
     }
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${timeDisplay}</td>
-      <td><strong>${avgPlates.toLocaleString()}</strong> <span style="font-size:11px;color:var(--text-dim)">/ day</span></td>
-      <td><strong>${avgSearches}</strong> <span style="font-size:11px;color:var(--text-dim)">/ day</span></td>
-      <td><strong>${avgHits}</strong> <span style="font-size:11px;color:var(--text-dim)">/ day</span></td>
-      <td>${shiftDisplay}</td>
+      <td><strong>${formatDeltaVal(pDiff)}</strong></td>
+      <td><strong>${formatDeltaVal(sDiff)}</strong></td>
+      <td><strong>${formatDeltaVal(hDiff)}</strong></td>
+      <td>${lookbackCell}</td>
     `;
     inferredTableBody.appendChild(tr);
   });
