@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.2">
+  <link rel="stylesheet" href="style.css?v=1.3">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
@@ -103,11 +103,12 @@
       </div>
     </section>
 
-    <!-- Snapshot History Table & Export -->
+    <!-- Data Tabs Section -->
     <section class="table-section">
-      <div class="table-header">
-        <div>
-          <h2 class="section-title">Snapshot History</h2>
+      <div class="tabs-header">
+        <div class="tab-buttons">
+          <button class="tab-btn active" data-tab="tab-snapshots">Snapshot History</button>
+          <button class="tab-btn" data-tab="tab-inferred">Inferred Data</button>
         </div>
         <div class="table-actions">
           <a href="data/history.csv" download class="btn btn-sm btn-outline">
@@ -121,23 +122,61 @@
         </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Snapshot Time (UTC)</th>
-              <th>Vehicles detected in the last 30 days</th>
-              <th>Number of Searches</th>
-              <th>Number of Hotlist Hits</th>
-              <th>Cameras</th>
-            </tr>
-          </thead>
-          <tbody id="history-table-body">
-            <tr>
-              <td colspan="5" class="text-center">Loading snapshot history...</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Tab 1: Snapshot History -->
+      <div class="tab-pane active" id="tab-snapshots">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Snapshot Time (UTC)</th>
+                <th>Vehicles detected in the last 30 days</th>
+                <th>Number of Searches</th>
+                <th>Number of Hotlist Hits</th>
+                <th>Cameras</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <tr>
+                <td colspan="5" class="text-center">Loading snapshot history...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Inferred Data -->
+      <div class="tab-pane" id="tab-inferred">
+        <div class="inferred-progress-container">
+          <div class="inferred-status-header">
+            <div>
+              <h3 class="inferred-status-title">30-Day Lookback Reconstruction</h3>
+              <p class="inferred-status-desc" id="inferred-progress-text">Collecting initial 30 days of rolling averages...</p>
+            </div>
+            <div class="inferred-count-badge" id="inferred-count-badge">0 / 30 Days</div>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="inferred-progress-bar" style="width: 3.3%;"></div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Snapshot Time (UTC)</th>
+                <th>Inferred Daily Vehicles (30d Avg)</th>
+                <th>Inferred Daily Searches (30d Avg)</th>
+                <th>Inferred Daily Hotlist Hits (30d Avg)</th>
+                <th>30-Day Window Shift</th>
+              </tr>
+            </thead>
+            <tbody id="inferred-table-body">
+              <tr>
+                <td colspan="5" class="text-center">Calculating inferred metrics...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -146,6 +185,6 @@
     </footer>
   </div>
 
-  <script src="app.js?v=1.2"></script>
+  <script src="app.js?v=1.3"></script>
 </body>
 </html>

@@ -12,10 +12,33 @@ const kpiCameras = document.getElementById('kpi-cameras');
 const cameraBadge = document.getElementById('camera-badge');
 const lastUpdatedText = document.getElementById('last-updated-text');
 const tableBody = document.getElementById('history-table-body');
+const inferredTableBody = document.getElementById('inferred-table-body');
+const inferredProgressText = document.getElementById('inferred-progress-text');
+const inferredCountBadge = document.getElementById('inferred-count-badge');
+const inferredProgressBar = document.getElementById('inferred-progress-bar');
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabPanes = document.querySelectorAll('.tab-pane');
 
 document.addEventListener('DOMContentLoaded', () => {
+  initTabs();
   loadData();
 });
+
+function initTabs() {
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-tab');
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabPanes.forEach(p => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      const targetPane = document.getElementById(targetId);
+      if (targetPane) {
+        targetPane.classList.add('active');
+      }
+    });
+  });
+}
 
 async function loadData() {
   try {
@@ -60,6 +83,7 @@ function renderAll() {
   updateKPIs(current, prev);
   updateStatus(current);
   renderTable(historyData);
+  renderInferredData(historyData);
   renderChart();
 }
 
@@ -111,7 +135,6 @@ function renderTable(history) {
 
   const reversed = [...history].reverse();
   reversed.forEach((row, revIdx) => {
-    // Find the item that came before this row in chronological order
     const origIdx = history.length - 1 - revIdx;
     const priorRow = origIdx > 0 ? history[origIdx - 1] : null;
 
@@ -139,6 +162,82 @@ function renderTable(history) {
       <td>${row.cameras || 10}</td>
     `;
     tableBody.appendChild(tr);
+  });
+}
+
+function renderInferredData(history) {
+  if (!inferredTableBody) return;
+
+  // Calculate distinct dates recorded
+  const distinctDates = new Set(history.map(h => h.date)).size;
+  const count = Math.max(1, distinctDates);
+  const percent = Math.min(100, Math.round((count / 30) * 100));
+
+  if (inferredCountBadge) {
+    inferredCountBadge.textContent = `${count} / 30 Days`;
+  }
+  if (inferredProgressBar) {
+    inferredProgressBar.style.width = `${Math.max(5, percent)}%`;
+  }
+  if (inferredProgressText) {
+    if (count < 30) {
+      inferredProgressText.textContent = `Collecting baseline rolling averages (${count}/30 days). Inferred 30-day historical lookback values unlock once 30 days of data are recorded. Inferred daily averages are calculated below:`;
+    } else {
+      inferredProgressText.textContent = `Full 30-day baseline active. Reconstructing 30-day historical lookback activity and rolling daily rates below:`;
+    }
+  }
+
+  inferredTableBody.innerHTML = '';
+  const reversed = [...history].reverse();
+
+  reversed.forEach((row, revIdx) => {
+    const origIdx = history.length - 1 - revIdx;
+    const priorRow = origIdx > 0 ? history[origIdx - 1] : null;
+
+    // Daily averages inferred from the 30-day rolling aggregate
+    const avgPlates = Math.round(row.plates_detected_30d / 30);
+    const avgSearches = (row.searches_30d / 30).toFixed(1);
+    const avgHits = (row.hotlist_hits_30d / 30).toFixed(1);
+
+    // Timestamp formatting
+    let timeDisplay = row.date;
+    if (row.timestamp) {
+      const parts = row.timestamp.replace('Z', '').split('T');
+      timeDisplay = `
+        <div class="table-time-primary">${parts[1] || ''} UTC</div>
+        <div class="table-date-secondary">${parts[0]}</div>
+      `;
+    }
+
+    // Window shift vs previous snapshot
+    let shiftDisplay = '<span class="stat-delta delta-zero">Baseline (0)</span>';
+    if (priorRow) {
+      const pDiff = row.plates_detected_30d - priorRow.plates_detected_30d;
+      const sDiff = row.searches_30d - priorRow.searches_30d;
+      const hDiff = row.hotlist_hits_30d - priorRow.hotlist_hits_30d;
+
+      const pSign = pDiff >= 0 ? `+${pDiff.toLocaleString()}` : `${pDiff.toLocaleString()}`;
+      const sSign = sDiff >= 0 ? `+${sDiff}` : `${sDiff}`;
+      const hSign = hDiff >= 0 ? `+${hDiff}` : `${hDiff}`;
+
+      shiftDisplay = `
+        <div style="font-size: 11px;">
+          <span class="${pDiff !== 0 ? (pDiff > 0 ? 'delta-pos' : 'delta-neg') : 'delta-zero'}">${pSign} plates</span> | 
+          <span class="${sDiff !== 0 ? (sDiff > 0 ? 'delta-pos' : 'delta-neg') : 'delta-zero'}">${sSign} searches</span> | 
+          <span class="${hDiff !== 0 ? (hDiff > 0 ? 'delta-pos' : 'delta-neg') : 'delta-zero'}">${hSign} hits</span>
+        </div>
+      `;
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${timeDisplay}</td>
+      <td><strong>${avgPlates.toLocaleString()}</strong> <span style="font-size:11px;color:var(--text-dim)">/ day</span></td>
+      <td><strong>${avgSearches}</strong> <span style="font-size:11px;color:var(--text-dim)">/ day</span></td>
+      <td><strong>${avgHits}</strong> <span style="font-size:11px;color:var(--text-dim)">/ day</span></td>
+      <td>${shiftDisplay}</td>
+    `;
+    inferredTableBody.appendChild(tr);
   });
 }
 
