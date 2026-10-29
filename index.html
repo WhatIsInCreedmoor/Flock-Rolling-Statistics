@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Creedmoor NC PD — Flock Safety ALPR Historical Trends</title>
+  <title>Creedmoor NC PD — Flock Safety Transparency Portal Statistics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
@@ -17,12 +17,11 @@
     <header class="app-header">
       <div class="header-content">
         <div class="badge-row">
-          <span class="badge badge-primary">Civic Transparency Tracker</span>
           <span class="badge badge-outline" id="camera-badge">10 Cameras</span>
-          <span class="badge badge-outline">30-Day Data Retention</span>
+          <span class="badge badge-outline">30 Days Data Retention</span>
         </div>
-        <h1>Creedmoor NC Police Department</h1>
-        <p class="subtitle">Flock Safety Automated License Plate Reader (ALPR) Historical Trends & Daily Snapshots</p>
+        <h1>Creedmoor NC PD</h1>
+        <p class="subtitle">Flock Safety Transparency Portal Historical Trends</p>
       </div>
       <div class="header-actions">
         <a href="https://transparency.flocksafety.com/creedmoor-nc-pd" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
@@ -31,32 +30,29 @@
         </a>
         <a href="https://github.com/WhatIsInCreedmoor/Flock-Rolling-Statistics" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-          GitHub Repo
+          GitHub
         </a>
       </div>
     </header>
 
-    <!-- Last Updated Bar -->
+    <!-- Status Bar -->
     <div class="status-bar">
       <div class="status-indicator">
         <span class="status-dot"></span>
         <span id="last-updated-text">Loading latest snapshot...</span>
       </div>
-      <div class="data-source-pill">
-        Scraped automatically via GitHub Actions
-      </div>
     </div>
 
-    <!-- KPI Metric Cards -->
+    <!-- Metric Cards -->
     <section class="metrics-grid">
       <div class="metric-card" id="card-plates">
         <div class="card-icon plates-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="7" cy="12" r="1"></circle><circle cx="17" cy="12" r="1"></circle><line x1="10" y1="12" x2="14" y2="12"></line></svg>
         </div>
         <div class="card-body">
-          <div class="card-label">Vehicles Detected (30 Days)</div>
+          <div class="card-label">Vehicles detected in the last 30 days</div>
           <div class="card-value" id="kpi-plates">—</div>
-          <div class="card-subtext" id="kpi-plates-delta">Unique plate reads in rolling window</div>
+          <div class="card-subtext">Number of unique plate reads over the last 30 days.</div>
         </div>
       </div>
 
@@ -65,9 +61,9 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </div>
         <div class="card-body">
-          <div class="card-label">Officer Searches (30 Days)</div>
+          <div class="card-label">Number of Searches</div>
           <div class="card-value" id="kpi-searches">—</div>
-          <div class="card-subtext" id="kpi-searches-delta">User search sessions in rolling window</div>
+          <div class="card-subtext">Total user search sessions over the last 30 days.</div>
         </div>
       </div>
 
@@ -76,9 +72,9 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
         </div>
         <div class="card-body">
-          <div class="card-label">Hotlist Hits (30 Days)</div>
+          <div class="card-label">Number of Hotlist Hits</div>
           <div class="card-value" id="kpi-hits">—</div>
-          <div class="card-subtext" id="kpi-hits-delta">Active warrants/stolen alerts triggered</div>
+          <div class="card-subtext">Total hotlist hits over the last 30 days.</div>
         </div>
       </div>
 
@@ -87,45 +83,18 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
         </div>
         <div class="card-body">
-          <div class="card-label">Active ALPR Cameras</div>
+          <div class="card-label">Cameras</div>
           <div class="card-value" id="kpi-cameras">10</div>
-          <div class="card-subtext">Fixed solar-powered high-speed readers</div>
+          <div class="card-subtext">Number of LPR and other cameras.</div>
         </div>
       </div>
     </section>
 
-    <!-- Main Chart Section -->
+    <!-- Chart Section -->
     <section class="chart-section">
       <div class="chart-header">
         <div>
-          <h2 class="section-title">30-Day Historical Trend</h2>
-          <p class="section-subtitle">Track how rolling plate scans, searches, and alert hits evolve day-by-day</p>
-        </div>
-        <div class="chart-controls">
-          <!-- Metric Selectors -->
-          <div class="btn-group" id="metric-buttons">
-            <button class="toggle-btn active" data-metric="all">Combined View</button>
-            <button class="toggle-btn" data-metric="plates">Plates</button>
-            <button class="toggle-btn" data-metric="searches">Searches</button>
-            <button class="toggle-btn" data-metric="hits">Hotlist Hits</button>
-          </div>
-
-          <!-- Dataset Toggle -->
-          <div class="dataset-mode-toggle">
-            <label class="switch-label">
-              <input type="checkbox" id="sample-data-toggle">
-              <span class="switch-slider"></span>
-              <span class="switch-text">Preview 30-Day Simulation</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Single Day Notice Banner (shown when only 1 record exists) -->
-      <div class="notice-banner" id="single-day-notice" style="display: none;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-        <div>
-          <strong>Collection Active:</strong> 1 daily snapshot recorded. The chart will plot new points automatically every day at 05:00 UTC. Use the <em>Preview 30-Day Simulation</em> toggle above to see how a full month of data renders.
+          <h2 class="section-title">Historical Trends</h2>
         </div>
       </div>
 
@@ -139,7 +108,6 @@
       <div class="table-header">
         <div>
           <h2 class="section-title">Daily Snapshot History</h2>
-          <p class="section-subtitle">Raw logs archived from Flock's transparency portal</p>
         </div>
         <div class="table-actions">
           <a href="data/history.csv" download class="btn btn-sm btn-outline">
@@ -158,9 +126,9 @@
           <thead>
             <tr>
               <th>Date (UTC)</th>
-              <th>Vehicles Detected (30d)</th>
-              <th>Officer Searches (30d)</th>
-              <th>Hotlist Hits (30d)</th>
+              <th>Vehicles detected in the last 30 days</th>
+              <th>Number of Searches</th>
+              <th>Number of Hotlist Hits</th>
               <th>Cameras</th>
             </tr>
           </thead>
@@ -173,30 +141,8 @@
       </div>
     </section>
 
-    <!-- Informational / Methodology Footer -->
-    <section class="info-section">
-      <div class="info-card">
-        <h3>How Flock Transparency Data Works</h3>
-        <p>
-          Flock Safety's public transparency portal publishes a <strong>rolling 30-day aggregate sum</strong> for vehicle detections, searches, and hotlist hits rather than individual daily breakdowns.
-        </p>
-        <p>
-          This dashboard runs an automated GitHub Action daily to capture snapshots of these rolling numbers. Over time, this builds a continuous historical record that reveals surveillance volume trends across Creedmoor.
-        </p>
-      </div>
-      <div class="info-card">
-        <h3>About Creedmoor NC ALPRs</h3>
-        <p>
-          The Creedmoor Police Department maintains 10 Flock Safety automated license plate reader cameras placed along key transit corridors (US-15, NC-56, West Wilton Ave, and South Main St).
-        </p>
-        <p>
-          Plate data is retained for 30 days before scheduled deletion, and alerted against NCIC and Amber Alert hotlists.
-        </p>
-      </div>
-    </section>
-
     <footer class="app-footer">
-      <p>Data mirrored from <a href="https://transparency.flocksafety.com/creedmoor-nc-pd" target="_blank" rel="noopener noreferrer">Creedmoor NC PD Flock Safety Portal</a>. Open-source under MIT License.</p>
+      <p>Data from <a href="https://transparency.flocksafety.com/creedmoor-nc-pd" target="_blank" rel="noopener noreferrer">Creedmoor NC PD Transparency Portal</a>.</p>
     </footer>
   </div>
 
