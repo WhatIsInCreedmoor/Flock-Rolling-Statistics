@@ -46,7 +46,6 @@ def fetch_rendered_html(url, timeout=40):
             "Chrome/Chromium executable not found. Please install google-chrome or chromium."
         )
 
-    # Use native browser flags without hardcoded user-agent mismatches to avoid triggering Cloudflare Turnstile
     cmd = [
         chrome_bin,
         "--headless=new",
@@ -58,7 +57,6 @@ def fetch_rendered_html(url, timeout=40):
         url,
     ]
 
-    # Try in standard sandbox first
     print(f"Executing: {' '.join(cmd[:5])} ... {url}")
     result = subprocess.run(
         cmd,
@@ -68,7 +66,6 @@ def fetch_rendered_html(url, timeout=40):
         timeout=timeout,
     )
 
-    # If sandbox failed due to container restrictions, retry with --no-sandbox
     if result.returncode != 0 and ("sandbox" in result.stderr.lower() or not result.stdout):
         print("Retrying with --no-sandbox --disable-dev-shm-usage...")
         cmd_fallback = [
@@ -95,14 +92,6 @@ def fetch_rendered_html(url, timeout=40):
 
 
 def extract_metric(entry_type, html):
-    """
-    Extracts numeric metric from elements with data-tp-entry-type="{entry_type}".
-    Structure inside Flock portal:
-      <div data-tp-entry-type="..." ...>
-        ...
-        <div style="...">94,218</div>
-      </div>
-    """
     pattern = (
         rf'data-tp-entry-type=[\"\x27]{entry_type}[\"\x27].*?'
         r'>([\d,]+)\s*</div>\s*</div>\s*</div>'
@@ -187,13 +176,7 @@ def update_data_files(metrics, now_utc=None):
             print(f"Warning reading history.json: {e}")
             history = []
 
-    existing_index = None
-    for idx, item in enumerate(history):
-        if item.get("date") == date_str:
-            existing_index = idx
-            break
-
-    entry = {
+    new_entry = {
         "date": date_str,
         "timestamp": iso_timestamp,
         "plates_detected_30d": metrics["plates_detected_30d"],
@@ -202,27 +185,46 @@ def update_data_files(metrics, now_utc=None):
         "cameras": metrics.get("cameras", 10),
     }
 
-    if existing_index is not None:
-        history[existing_index] = entry
-        print(f"Updated existing record for {date_str} in history.json")
-    else:
-        history.append(entry)
-        print(f"Appended new record for {date_str} to history.json")
+    should_append = True
+    if history:
+        last = history[-1]
+        metrics_same = (
+            last.get("plates_detected_30d") == metrics["plates_detected_30d"] and
+            last.get("searches_30d") == metrics["searches_30d"] and
+            last.get("hotlist_hits_30d") == metrics["hotlist_hits_30d"] and
+            last.get("cameras") == metrics.get("cameras", 10)
+        )
+        try:
+            last_dt = datetime.datetime.fromisoformat(last.get("timestamp", "").replace("Z", "+00:00"))
+            time_diff = (now_utc - last_dt).total_seconds()
+        except Exception:
+            time_diff = 999999
 
-    history.sort(key=lambda x: x.get("date", ""))
+        # If identical metrics within 30 minutes, update timestamp instead of creating duplicate
+        if metrics_same and time_diff < 1800:
+            should_append = False
+            last["timestamp"] = iso_timestamp
+            last["date"] = date_str
+            print(f"Updated existing recent snapshot timestamp ({iso_timestamp}) in history.json")
+
+    if should_append:
+        history.append(new_entry)
+        print(f"Appended new snapshot ({iso_timestamp}) to history.json")
+
+    history.sort(key=lambda x: x.get("timestamp", x.get("date", "")))
 
     with open(HISTORY_JSON, "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2)
 
     # 3. Update history.csv
-    fieldnames = ["date", "timestamp", "plates_detected_30d", "searches_30d", "hotlist_hits_30d", "cameras"]
+    fieldnames = ["timestamp", "date", "plates_detected_30d", "searches_30d", "hotlist_hits_30d", "cameras"]
     with open(HISTORY_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for item in history:
             writer.writerow({
-                "date": item.get("date", ""),
                 "timestamp": item.get("timestamp", ""),
+                "date": item.get("date", ""),
                 "plates_detected_30d": item.get("plates_detected_30d", ""),
                 "searches_30d": item.get("searches_30d", ""),
                 "hotlist_hits_30d": item.get("hotlist_hits_30d", ""),

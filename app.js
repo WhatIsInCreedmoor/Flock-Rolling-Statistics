@@ -54,33 +54,48 @@ async function loadData() {
 
 function renderAll() {
   const current = historyData[historyData.length - 1] || latestData;
+  const prev = historyData.length >= 2 ? historyData[historyData.length - 2] : null;
 
-  updateKPIs(current);
+  updateKPIs(current, prev);
   updateStatus(current);
   renderTable(historyData);
   renderChart();
 }
 
-function updateKPIs(current) {
-  if (kpiPlates) kpiPlates.textContent = Number(current.plates_detected_30d).toLocaleString();
-  if (kpiSearches) kpiSearches.textContent = Number(current.searches_30d).toLocaleString();
-  if (kpiHits) kpiHits.textContent = Number(current.hotlist_hits_30d).toLocaleString();
-  if (kpiCameras) kpiCameras.textContent = current.cameras || 10;
-  if (cameraBadge) cameraBadge.textContent = `${current.cameras || 10} Cameras`;
+function formatStatWithDelta(value, prevValue) {
+  const formattedVal = Number(value).toLocaleString();
+  if (prevValue === undefined || prevValue === null) {
+    return formattedVal;
+  }
+  const diff = value - prevValue;
+  const sign = diff > 0 ? `+${diff.toLocaleString()}` : (diff < 0 ? `${diff.toLocaleString()}` : '+0');
+  const cls = diff > 0 ? 'delta-pos' : (diff < 0 ? 'delta-neg' : 'delta-zero');
+  return `${formattedVal} <span class="stat-delta ${cls}">(${sign})</span>`;
+}
+
+function updateKPIs(current, prev) {
+  if (kpiPlates) {
+    kpiPlates.innerHTML = formatStatWithDelta(current.plates_detected_30d, prev ? prev.plates_detected_30d : null);
+  }
+  if (kpiSearches) {
+    kpiSearches.innerHTML = formatStatWithDelta(current.searches_30d, prev ? prev.searches_30d : null);
+  }
+  if (kpiHits) {
+    kpiHits.innerHTML = formatStatWithDelta(current.hotlist_hits_30d, prev ? prev.hotlist_hits_30d : null);
+  }
+  if (kpiCameras) {
+    kpiCameras.textContent = current.cameras || 10;
+  }
+  if (cameraBadge) {
+    cameraBadge.textContent = `${current.cameras || 10} Cameras`;
+  }
 }
 
 function updateStatus(current) {
   if (current && current.timestamp) {
     const d = new Date(current.timestamp);
-    const dateFormatted = d.toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZoneName: 'short'
-    });
-    lastUpdatedText.innerHTML = `<strong>Latest Snapshot:</strong> ${dateFormatted}`;
+    const dateFormatted = d.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+    lastUpdatedText.innerHTML = `<strong>Snapshot Time:</strong> ${dateFormatted}`;
   } else {
     lastUpdatedText.textContent = "Live data synced";
   }
@@ -91,13 +106,32 @@ function renderTable(history) {
   tableBody.innerHTML = '';
 
   const reversed = [...history].reverse();
-  reversed.forEach(row => {
+  reversed.forEach((row, revIdx) => {
+    // Find the item that came before this row in chronological order
+    const origIdx = history.length - 1 - revIdx;
+    const priorRow = origIdx > 0 ? history[origIdx - 1] : null;
+
+    let timeDisplay = row.date;
+    if (row.timestamp) {
+      const parts = row.timestamp.replace('Z', '').split('T');
+      const dPart = parts[0];
+      const tPart = parts[1] || '';
+      timeDisplay = `
+        <div class="table-time-primary">${tPart} UTC</div>
+        <div class="table-date-secondary">${dPart}</div>
+      `;
+    }
+
+    const platesCell = formatStatWithDelta(row.plates_detected_30d, priorRow ? priorRow.plates_detected_30d : null);
+    const searchesCell = formatStatWithDelta(row.searches_30d, priorRow ? priorRow.searches_30d : null);
+    const hitsCell = formatStatWithDelta(row.hotlist_hits_30d, priorRow ? priorRow.hotlist_hits_30d : null);
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${row.date}</strong></td>
-      <td>${Number(row.plates_detected_30d).toLocaleString()}</td>
-      <td>${Number(row.searches_30d).toLocaleString()}</td>
-      <td>${Number(row.hotlist_hits_30d).toLocaleString()}</td>
+      <td>${timeDisplay}</td>
+      <td>${platesCell}</td>
+      <td>${searchesCell}</td>
+      <td>${hitsCell}</td>
       <td>${row.cameras || 10}</td>
     `;
     tableBody.appendChild(tr);
@@ -108,7 +142,14 @@ function renderChart() {
   const ctx = document.getElementById('trendsChart');
   if (!ctx) return;
 
-  const labels = historyData.map(d => d.date);
+  const labels = historyData.map(d => {
+    if (d.timestamp) {
+      const t = d.timestamp.replace('Z', '').split('T');
+      return `${t[0]} ${t[1] ? t[1].substring(0, 5) : ''}`.trim();
+    }
+    return d.date;
+  });
+
   const platesData = historyData.map(d => d.plates_detected_30d);
   const searchesData = historyData.map(d => d.searches_30d);
   const hitsData = historyData.map(d => d.hotlist_hits_30d);

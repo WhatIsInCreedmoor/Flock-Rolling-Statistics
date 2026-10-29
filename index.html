@@ -6,7 +6,7 @@
   <title>Creedmoor NC PD — Flock Safety Transparency Portal Statistics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
@@ -35,11 +35,11 @@
       </div>
     </header>
 
-    <!-- Status Bar -->
+    <!-- Status Bar with Snapshot Time on top -->
     <div class="status-bar">
       <div class="status-indicator">
         <span class="status-dot"></span>
-        <span id="last-updated-text">Loading latest snapshot...</span>
+        <span id="last-updated-text">Snapshot Time: Loading...</span>
       </div>
     </div>
 
@@ -103,11 +103,11 @@
       </div>
     </section>
 
-    <!-- History Table & Export -->
+    <!-- Snapshot History Table & Export -->
     <section class="table-section">
       <div class="table-header">
         <div>
-          <h2 class="section-title">Daily Snapshot History</h2>
+          <h2 class="section-title">Snapshot History</h2>
         </div>
         <div class="table-actions">
           <a href="data/history.csv" download class="btn btn-sm btn-outline">
@@ -125,7 +125,7 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Date (UTC)</th>
+              <th>Snapshot Time (UTC)</th>
               <th>Vehicles detected in the last 30 days</th>
               <th>Number of Searches</th>
               <th>Number of Hotlist Hits</th>

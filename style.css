@@ -232,6 +232,39 @@ body {
   font-family: var(--font-mono);
   letter-spacing: -0.5px;
   line-height: 1.2;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stat-delta {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.delta-pos {
+  color: #34d399;
+}
+
+.delta-neg {
+  color: #f87171;
+}
+
+.delta-zero {
+  color: var(--text-dim);
+}
+
+.table-time-primary {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.table-date-secondary {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
 }
 
 .card-subtext {
