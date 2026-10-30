@@ -46,18 +46,28 @@ def fetch_rendered_html(url, timeout=40):
             "Chrome/Chromium executable not found. Please install google-chrome or chromium."
         )
 
+    user_agent = (
+        "Mozilla/5.0 (X11; Linux x86_64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/130.0.0.0 Safari/537.36"
+    )
+
     cmd = [
         chrome_bin,
         "--headless=new",
         "--disable-gpu",
         "--disable-blink-features=AutomationControlled",
+        f"--user-agent={user_agent}",
         "--window-size=1920,1080",
         "--virtual-time-budget=15000",
         "--dump-dom",
         url,
     ]
 
-    print(f"Executing: {' '.join(cmd[:5])} ... {url}")
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        cmd.extend(["--no-sandbox", "--disable-dev-shm-usage"])
+
+    print(f"Executing: {' '.join(cmd[:6])} ... {url}")
     result = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
@@ -75,6 +85,7 @@ def fetch_rendered_html(url, timeout=40):
             "--no-sandbox",
             "--disable-dev-shm-usage",
             "--disable-blink-features=AutomationControlled",
+            f"--user-agent={user_agent}",
             "--window-size=1920,1080",
             "--virtual-time-budget=15000",
             "--dump-dom",
