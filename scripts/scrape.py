@@ -166,6 +166,41 @@ def update_data_files(metrics, now_utc=None):
 
     os.makedirs(DATA_DIR, exist_ok=True)
 
+    # Read existing history
+    history = []
+    if os.path.exists(HISTORY_JSON):
+        try:
+            with open(HISTORY_JSON, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        except Exception as e:
+            print(f"Warning reading history.json: {e}")
+            history = []
+
+    # Check if metrics changed compared to the last recorded entry
+    if history:
+        last = history[-1]
+        metrics_same = (
+            last.get("plates_detected_30d") == metrics["plates_detected_30d"] and
+            last.get("searches_30d") == metrics["searches_30d"] and
+            last.get("hotlist_hits_30d") == metrics["hotlist_hits_30d"] and
+            last.get("cameras") == metrics.get("cameras", 10)
+        )
+        if metrics_same:
+            print(
+                f"No metric change detected compared to last snapshot "
+                f"({last.get('timestamp')}). Skipping update."
+            )
+            return False
+
+    new_entry = {
+        "date": date_str,
+        "timestamp": iso_timestamp,
+        "plates_detected_30d": metrics["plates_detected_30d"],
+        "searches_30d": metrics["searches_30d"],
+        "hotlist_hits_30d": metrics["hotlist_hits_30d"],
+        "cameras": metrics.get("cameras", 10),
+    }
+
     # 1. Update latest.json
     latest_record = {
         "date": date_str,
@@ -178,54 +213,12 @@ def update_data_files(metrics, now_utc=None):
     print(f"Saved latest snapshot to: {LATEST_JSON}")
 
     # 2. Update history.json
-    history = []
-    if os.path.exists(HISTORY_JSON):
-        try:
-            with open(HISTORY_JSON, "r", encoding="utf-8") as f:
-                history = json.load(f)
-        except Exception as e:
-            print(f"Warning reading history.json: {e}")
-            history = []
-
-    new_entry = {
-        "date": date_str,
-        "timestamp": iso_timestamp,
-        "plates_detected_30d": metrics["plates_detected_30d"],
-        "searches_30d": metrics["searches_30d"],
-        "hotlist_hits_30d": metrics["hotlist_hits_30d"],
-        "cameras": metrics.get("cameras", 10),
-    }
-
-    should_append = True
-    if history:
-        last = history[-1]
-        metrics_same = (
-            last.get("plates_detected_30d") == metrics["plates_detected_30d"] and
-            last.get("searches_30d") == metrics["searches_30d"] and
-            last.get("hotlist_hits_30d") == metrics["hotlist_hits_30d"] and
-            last.get("cameras") == metrics.get("cameras", 10)
-        )
-        try:
-            last_dt = datetime.datetime.fromisoformat(last.get("timestamp", "").replace("Z", "+00:00"))
-            time_diff = (now_utc - last_dt).total_seconds()
-        except Exception:
-            time_diff = 999999
-
-        # If identical metrics within 30 minutes, update timestamp instead of creating duplicate
-        if metrics_same and time_diff < 1800:
-            should_append = False
-            last["timestamp"] = iso_timestamp
-            last["date"] = date_str
-            print(f"Updated existing recent snapshot timestamp ({iso_timestamp}) in history.json")
-
-    if should_append:
-        history.append(new_entry)
-        print(f"Appended new snapshot ({iso_timestamp}) to history.json")
-
+    history.append(new_entry)
     history.sort(key=lambda x: x.get("timestamp", x.get("date", "")))
 
     with open(HISTORY_JSON, "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2)
+    print(f"Appended new snapshot ({iso_timestamp}) to history.json")
 
     # 3. Update history.csv
     fieldnames = ["timestamp", "date", "plates_detected_30d", "searches_30d", "hotlist_hits_30d", "cameras"]
@@ -242,6 +235,7 @@ def update_data_files(metrics, now_utc=None):
                 "cameras": item.get("cameras", 10),
             })
     print(f"Saved history CSV to: {HISTORY_CSV}")
+    return True
 
 
 def main():
