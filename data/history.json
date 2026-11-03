@@ -46,5 +46,13 @@
     "searches_30d": 38,
     "hotlist_hits_30d": 119,
     "cameras": 10
+  },
+  {
+    "date": "2026-11-03",
+    "timestamp": "2026-11-03T16:00:06Z",
+    "plates_detected_30d": 93131,
+    "searches_30d": 37,
+    "hotlist_hits_30d": 114,
+    "cameras": 10
   }
 ]
