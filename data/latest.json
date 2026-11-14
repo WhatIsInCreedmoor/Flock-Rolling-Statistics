@@ -1,9 +1,9 @@
 {
-  "date": "2026-11-13",
-  "timestamp": "2026-11-13T16:00:05Z",
+  "date": "2026-11-14",
+  "timestamp": "2026-11-14T16:00:05Z",
   "agency": "Creedmoor NC PD",
-  "plates_detected_30d": 97211,
+  "plates_detected_30d": 97677,
   "searches_30d": 31,
-  "hotlist_hits_30d": 108,
+  "hotlist_hits_30d": 101,
   "cameras": 10
 }
