@@ -13,6 +13,7 @@ const cameraBadge = document.getElementById('camera-badge');
 const lastUpdatedText = document.getElementById('last-updated-text');
 const tableBody = document.getElementById('history-table-body');
 const inferredTableBody = document.getElementById('inferred-table-body');
+const lookbackTableBody = document.getElementById('lookback-table-body');
 const inferredProgressText = document.getElementById('inferred-progress-text');
 const inferredCountBadge = document.getElementById('inferred-count-badge');
 const inferredProgressBar = document.getElementById('inferred-progress-bar');
@@ -84,6 +85,7 @@ function renderAll() {
   updateStatus(current);
   renderTable(historyData);
   renderInferredData(historyData);
+  renderLookbackData(historyData);
   renderChart();
 }
 
@@ -129,6 +131,19 @@ function updateStatus(current) {
   }
 }
 
+function formatTimestampCell(row) {
+  if (!row.timestamp) {
+    return row.date;
+  }
+  const parts = row.timestamp.replace('Z', '').split('T');
+  const dPart = parts[0];
+  const tPart = parts[1] || '';
+  return `
+    <div class="table-time-primary">${tPart} UTC</div>
+    <div class="table-date-secondary">${dPart}</div>
+  `;
+}
+
 function renderTable(history) {
   if (!tableBody) return;
   tableBody.innerHTML = '';
@@ -138,17 +153,7 @@ function renderTable(history) {
     const origIdx = history.length - 1 - revIdx;
     const priorRow = origIdx > 0 ? history[origIdx - 1] : null;
 
-    let timeDisplay = row.date;
-    if (row.timestamp) {
-      const parts = row.timestamp.replace('Z', '').split('T');
-      const dPart = parts[0];
-      const tPart = parts[1] || '';
-      timeDisplay = `
-        <div class="table-time-primary">${tPart} UTC</div>
-        <div class="table-date-secondary">${dPart}</div>
-      `;
-    }
-
+    const timeDisplay = formatTimestampCell(row);
     const platesCell = formatStatWithDelta(row.plates_detected_30d, priorRow ? priorRow.plates_detected_30d : null);
     const searchesCell = formatStatWithDelta(row.searches_30d, priorRow ? priorRow.searches_30d : null);
     const hitsCell = formatStatWithDelta(row.hotlist_hits_30d, priorRow ? priorRow.hotlist_hits_30d : null);
@@ -177,6 +182,32 @@ function formatDeltaVal(diff) {
 function renderInferredData(history) {
   if (!inferredTableBody) return;
 
+  inferredTableBody.innerHTML = '';
+  const reversed = [...history].reverse();
+
+  reversed.forEach((row, revIdx) => {
+    const origIdx = history.length - 1 - revIdx;
+    const priorRow = origIdx > 0 ? history[origIdx - 1] : null;
+
+    // Calculate daily net difference via subtraction
+    const pDiff = priorRow ? row.plates_detected_30d - priorRow.plates_detected_30d : 0;
+    const sDiff = priorRow ? row.searches_30d - priorRow.searches_30d : 0;
+    const hDiff = priorRow ? row.hotlist_hits_30d - priorRow.hotlist_hits_30d : 0;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${formatTimestampCell(row)}</td>
+      <td><strong>${formatDeltaVal(pDiff)}</strong></td>
+      <td><strong>${formatDeltaVal(sDiff)}</strong></td>
+      <td><strong>${formatDeltaVal(hDiff)}</strong></td>
+    `;
+    inferredTableBody.appendChild(tr);
+  });
+}
+
+function renderLookbackData(history) {
+  if (!lookbackTableBody) return;
+
   // Calculate distinct calendar dates recorded
   const distinctDates = new Set(history.map(h => h.date)).size;
   const count = Math.max(1, distinctDates);
@@ -190,59 +221,47 @@ function renderInferredData(history) {
   }
   if (inferredProgressText) {
     if (count < 30) {
-      inferredProgressText.textContent = `Tracking baseline rolling sums (${count}/30 days). Net shifts are calculated via direct subtraction: R(today) - R(previous) = Added Activity - Dropped 30-Day Activity. Once 30 days are recorded, 30-day lookback differences will calculate via subtraction.`;
+      inferredProgressText.textContent = `Tracking baseline rolling totals (${count}/30 days). Once 30 days are recorded, 30-day lookback differences will calculate via subtraction against the snapshot from 30 days prior.`;
     } else {
-      inferredProgressText.textContent = `Full 30-day baseline established. Reconstructing historical lookback activity and daily net shifts strictly via subtraction:`;
+      inferredProgressText.textContent = `Full 30-day baseline established. Comparing each snapshot against the snapshot 30 days prior via direct subtraction:`;
     }
   }
 
-  inferredTableBody.innerHTML = '';
+  lookbackTableBody.innerHTML = '';
   const reversed = [...history].reverse();
 
-  reversed.forEach((row, revIdx) => {
-    const origIdx = history.length - 1 - revIdx;
-    const priorRow = origIdx > 0 ? history[origIdx - 1] : null;
-
-    // Calculate daily net difference via subtraction
-    const pDiff = priorRow ? row.plates_detected_30d - priorRow.plates_detected_30d : 0;
-    const sDiff = priorRow ? row.searches_30d - priorRow.searches_30d : 0;
-    const hDiff = priorRow ? row.hotlist_hits_30d - priorRow.hotlist_hits_30d : 0;
-
-    // Timestamp formatting
-    let timeDisplay = row.date;
-    if (row.timestamp) {
-      const parts = row.timestamp.replace('Z', '').split('T');
-      timeDisplay = `
-        <div class="table-time-primary">${parts[1] || ''} UTC</div>
-        <div class="table-date-secondary">${parts[0]}</div>
-      `;
-    }
-
-    // Lookback subtraction: find entry from ~30 days prior
-    let lookbackCell = `<span class="stat-delta delta-zero">Pending (Day ${count} of 30)</span>`;
+  reversed.forEach((row) => {
     const rowDate = new Date(row.date);
-    const thirtyDaysAgoRow = history.find(h => {
+    // Search in reverse to pick the closest snapshot that is at least 30 days prior
+    const thirtyDaysAgoRow = [...history].reverse().find(h => {
       const hDate = new Date(h.date);
       const diffDays = Math.round((rowDate - hDate) / (1000 * 60 * 60 * 24));
       return diffDays >= 30;
     });
 
-    if (thirtyDaysAgoRow) {
-      const lookbackPlatesDiff = row.plates_detected_30d - thirtyDaysAgoRow.plates_detected_30d;
-      const lbSign = lookbackPlatesDiff >= 0 ? `+${lookbackPlatesDiff.toLocaleString()}` : `${lookbackPlatesDiff.toLocaleString()}`;
-      const lbCls = lookbackPlatesDiff > 0 ? 'delta-pos' : (lookbackPlatesDiff < 0 ? 'delta-neg' : 'delta-zero');
-      lookbackCell = `<span class="stat-delta ${lbCls}">${lbSign} plates (vs 30d ago)</span>`;
-    }
-
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${timeDisplay}</td>
-      <td><strong>${formatDeltaVal(pDiff)}</strong></td>
-      <td><strong>${formatDeltaVal(sDiff)}</strong></td>
-      <td><strong>${formatDeltaVal(hDiff)}</strong></td>
-      <td>${lookbackCell}</td>
-    `;
-    inferredTableBody.appendChild(tr);
+    if (thirtyDaysAgoRow) {
+      const pLookback = row.plates_detected_30d - thirtyDaysAgoRow.plates_detected_30d;
+      const sLookback = row.searches_30d - thirtyDaysAgoRow.searches_30d;
+      const hLookback = row.hotlist_hits_30d - thirtyDaysAgoRow.hotlist_hits_30d;
+
+      tr.innerHTML = `
+        <td>${formatTimestampCell(row)}</td>
+        <td>${formatTimestampCell(thirtyDaysAgoRow)}</td>
+        <td><strong>${formatDeltaVal(pLookback)}</strong></td>
+        <td><strong>${formatDeltaVal(sLookback)}</strong></td>
+        <td><strong>${formatDeltaVal(hLookback)}</strong></td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td>${formatTimestampCell(row)}</td>
+        <td><span class="stat-delta delta-zero">Pending (Day ${count} of 30)</span></td>
+        <td><span class="stat-delta delta-zero">—</span></td>
+        <td><span class="stat-delta delta-zero">—</span></td>
+        <td><span class="stat-delta delta-zero">—</span></td>
+      `;
+    }
+    lookbackTableBody.appendChild(tr);
   });
 }
 

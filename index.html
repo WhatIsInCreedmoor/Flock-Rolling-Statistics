@@ -109,6 +109,7 @@
         <div class="tab-buttons">
           <button class="tab-btn active" data-tab="tab-snapshots">Snapshot History</button>
           <button class="tab-btn" data-tab="tab-inferred">Inferred Data</button>
+          <button class="tab-btn" data-tab="tab-lookback">30-Day Lookback</button>
         </div>
         <div class="table-actions">
           <a href="data/history.csv" download class="btn btn-sm btn-outline">
@@ -146,11 +147,32 @@
 
       <!-- Tab 2: Inferred Data -->
       <div class="tab-pane" id="tab-inferred">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Snapshot Time (UTC)</th>
+                <th>Net Vehicle Difference (Δ)</th>
+                <th>Net Search Difference (Δ)</th>
+                <th>Net Hotlist Hit Difference (Δ)</th>
+              </tr>
+            </thead>
+            <tbody id="inferred-table-body">
+              <tr>
+                <td colspan="4" class="text-center">Calculating subtraction metrics...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: 30-Day Lookback -->
+      <div class="tab-pane" id="tab-lookback">
         <div class="inferred-progress-container">
           <div class="inferred-status-header">
             <div>
-              <h3 class="inferred-status-title">30-Day Lookback Reconstruction</h3>
-              <p class="inferred-status-desc" id="inferred-progress-text">Collecting initial 30 days of rolling averages...</p>
+              <h3 class="inferred-status-title">30-Day Lookback Comparison</h3>
+              <p class="inferred-status-desc" id="inferred-progress-text">Collecting initial 30 days of rolling totals...</p>
             </div>
             <div class="inferred-count-badge" id="inferred-count-badge">0 / 30 Days</div>
           </div>
@@ -164,15 +186,15 @@
             <thead>
               <tr>
                 <th>Snapshot Time (UTC)</th>
-                <th>Net Vehicle Difference (Δ)</th>
-                <th>Net Search Difference (Δ)</th>
-                <th>Net Hotlist Hit Difference (Δ)</th>
-                <th>30-Day Lookback Difference</th>
+                <th>30d Prior Baseline</th>
+                <th>Vehicles Detected (30d Δ)</th>
+                <th>Number of Searches (30d Δ)</th>
+                <th>Number of Hotlist Hits (30d Δ)</th>
               </tr>
             </thead>
-            <tbody id="inferred-table-body">
+            <tbody id="lookback-table-body">
               <tr>
-                <td colspan="5" class="text-center">Calculating subtraction metrics...</td>
+                <td colspan="5" class="text-center">Calculating 30-day lookback...</td>
               </tr>
             </tbody>
           </table>
@@ -185,6 +207,6 @@
     </footer>
   </div>
 
-  <script src="app.js?v=1.4"></script>
+  <script src="app.js?v=1.5"></script>
 </body>
 </html>
