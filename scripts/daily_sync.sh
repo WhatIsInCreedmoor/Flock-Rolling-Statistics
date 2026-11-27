@@ -5,6 +5,8 @@ set -e
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
+git pull --rebase origin main
+
 echo "=== [$(date)] Running Flock Scraper ==="
 python3 scripts/scrape.py
 
